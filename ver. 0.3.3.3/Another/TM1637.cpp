@@ -177,24 +177,3 @@ void TM1637::showPosition(int8_t sp)
     delay(20);
   }
 } 
-
- int8_t TimeDisp[] = {0x00,0x00,0x00,0x00};
-void TM1637::TimeUpdate(int ClockPoint,int number)
-{
-  if(ClockPoint)point(POINT_ON);
-  else point(POINT_OFF); 
-  TimeDisp[0] = number / 1000;     //千
-  TimeDisp[1] = number % 1000/100; //百
-  TimeDisp[2] = number % 100/10;   //十
-  TimeDisp[3] = number % 10;       //个
-  if(number>=1000){
-    showPosition(4);  //显示四位数
-  }else if(number>=100){
-    showPosition(3);  //显示三位数
-  }else if(number>=10){
-    showPosition(2);
-  }else {
-    showPosition(1);
-  } 
-  display(TimeDisp); //数码管显示
-}

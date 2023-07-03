@@ -98,8 +98,7 @@ Servo servo_11;
 Servo servo_12;
 Servo servo_13;
 
-void FanControl(int speedValue)
-{
+void FanControl(int speedValue) {
   if (speedValue >= 0)
   {
     digitalWrite(DirPin, LOW);
@@ -159,8 +158,7 @@ void printTime() {
   secPre = t.sec;
 }
 
-void show()
-{
+void show() {
   Serial.print("Temperature: ");
   Serial.print(temperature, 1);                            //10 hexadecimal
   Serial.println("℃");
@@ -300,7 +298,7 @@ void loop() {
   //show();
   //delay(1000);
 
-  sensorValue = analogRead(Light);//获取光敏传感器返回值
+  /*sensorValue = analogRead(Light);//获取光敏传感器返回值
   lightValue = map(sensorValue, 0, 1023, 1000, 0); //将获取光敏传感器返回值映射成亮度值
   rainValue =  analogRead(Rain);//雨水值
   //Serial.print("lightValue = ");
@@ -471,5 +469,5 @@ void loop() {
     //lcd.setCursor(0, 1);
     //lcd.print("clock rings.");
     Play_Music();
-  }
+  }*/
 }
