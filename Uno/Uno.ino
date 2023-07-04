@@ -3,12 +3,13 @@
 #include "LiquidCrystal_I2C.h"
 #include "TM1637.h"
 #include "Temperature_Sensor.h"
+#include "RFID.h"
+#include <Servo.h>//引入舵机库
 LiquidCrystal_I2C lcd(0x27,16,2); 
 const int RST   = 2;  // Chip Enable
 const int DAT   = 3;  // Input/Output
 const int CLK = 4;  // Serial Clock
 
-const int PIN_L9110S = 9;  // L9110S电机驱动模块引脚
 
 // 创建 DS1302 对象
 DS1302 rtc(RST, DAT, CLK);
@@ -17,11 +18,17 @@ int secPre = -1;
 boolean ClockPoint = true;//数码管中间两个点,0关闭,1开启
 TM1637 tm1637(7, 8);
 DHT DHTData(A3, 11);
+byte servoAngle = 80;//舵机初始角度
+Servo servo_5;
+byte state_pre;
+//4字节序列号卡，5字节字节是核准
+uchar serNum[5];
 
 String month;
 String hour;
 String minute;
 String second;
+
 String dayAsString(const Time::Day day) {
   switch (day) { 
     case Time::kSunday: return "Sun";
@@ -80,7 +87,19 @@ void printTime() {
   secPre = t.sec;
 }
 
-
+void openTheDoor() {
+  while (servoAngle < 180) {
+    servoAngle = servoAngle + 2;
+    servo_5.write(servoAngle);
+    delay(50);
+  }
+  delay(2000);
+  while (servoAngle > 80) {
+    servoAngle = servoAngle - 2;
+    servo_5.write(servoAngle);
+    delay(50);
+  }
+}
 
 void setup() {
   Serial.begin(9600);
@@ -90,9 +109,13 @@ void setup() {
   tm1637.init();
   tm1637.point(POINT_ON);
   DHTData.begin();
-  pinMode(PIN_L9110S,OUTPUT);
-  digitalWrite(PIN_L9110S,LOW);
-  Serial.println("start");
+  SPI.begin();
+  pinMode(chipSelectPin, OUTPUT);       //设置数字引脚10作为输出连接到RFID/使能引脚
+  digitalWrite(chipSelectPin, LOW);    //激活RFID阅读器（片选）
+  MFRC522_Init();
+  servo_5.attach(5);//舵机初始化
+  servo_5.write(servoAngle);//舵机运行到初始角度
+
   
 // 设置时间后, 需要注释掉下面四行设置时间的代码,并重新烧录一次. 以免掉电重新执行setup中的时间设置函数.
   //rtc.writeProtect(false);
@@ -109,5 +132,38 @@ void loop() {
   lcd.print(String("T:") + String(DHTData.readTemperature())+"  ");
   //lcd.setCursor(0, 1);
   lcd.print(String("H:") + String(DHTData.readHumidity()));
-  delay(100);
+
+  uchar status;
+  uchar str[MAX_LEN];
+  //搜索卡，返回卡类型
+  status = MFRC522_Request(PICC_REQIDL, str);
+  if (status == MI_OK && state_pre != MI_OK) {
+    //查看卡的类型
+    //ShowCardType(str);
+    //防止冲突返回网卡的4字节序列号
+    status = MFRC522_Anticoll(str);
+    // str[0..3]: 卡片序列号
+    // str[4]: XOR checksum of the SN.(SN的异或校验。)
+    if (status == MI_OK) {
+      Serial.print("The card's number is: ");
+      memcpy(serNum, str, 5);
+      ShowCardID(serNum);
+      //卡的相关身份验证
+      uchar* id = serNum;
+      //卡的id需要自己修改下面的if esle判断里的具体id
+      //IC Key:2C073F31
+      if ( id[0] == 0x23 && id[1] == 0x4A && id[2] == 0x58 && id[3] == 0xCD) {
+        Serial.println("IC Key!"); openTheDoor();
+      } else if (id[0] == 0x03 && id[1] == 0xDC && id[2] == 0xAB && id[3] == 0xFC) {
+        //IC White Card:A300D818
+        Serial.println("IC White Card!"); openTheDoor();
+      } else {
+        Serial.println("unkown !");
+      }
+    }
+  }
+  state_pre = status;
+  MFRC522_Halt(); //命令卡进入休眠模式
+
+  delay(1000);  
 }
