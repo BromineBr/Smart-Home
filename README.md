@@ -5,4 +5,5 @@ This is a project which used a simple wooden model and multiple sensors to reper
 ## Realization
 Very basic and simple codes using cpp, hence with nothing to say >_<
 
-Produced by Bromine_Br
+![](https://github.com/BromineBr/Smart-Home/blob/main/Waifu.jpg)
+Produced by Bromine_Br & Noa Yuki
